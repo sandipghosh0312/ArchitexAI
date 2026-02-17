@@ -1,7 +1,9 @@
 import Navbar from "components/Navbar";
 import type { Route } from "./+types/home";
 import Button from "components/ui/Button";
-import { ArrowUpRight, Clock, Layers } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Clock, Layers } from "lucide-react";
+import Upload from "components/ui/Upload";
+import { useNavigate } from "react-router";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -11,6 +13,14 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Home() {
+  const navigate = useNavigate();
+
+  const handleUploadComplete = async (base64Image: string) => {
+    const newId = Date.now().toString();
+    navigate(`/visualizer/${newId}`);
+    return true;
+  }
+
   return (
     <div className="home">
       <Navbar />
@@ -24,7 +34,7 @@ export default function Home() {
         <h1>Build beautiful spaces at the speed of thought with ArchitexAI</h1>
         <p className="subtitle">ArchitexAI is an AI-first design environment that helps you visualize, render and ship architectual projects faster than ever.</p>
         <div className="actions">
-            <a href="#upload" className="cta">Start Building</a>
+            <a href="#upload" className="cta">Start Building <ArrowRight className="icon" /></a>
             <Button size="lg" variant="outline" className="demo">Watch Demo</Button>
         </div>
         <div id="upload" className="upload-shell">
@@ -37,7 +47,7 @@ export default function Home() {
               <h3>Upload your floor plan</h3>
               <p>Supports JPG, PNG, formats upto 10MB.</p>
             </div>
-            <p>Upload Images</p>
+            <Upload onComplete={handleUploadComplete} />
           </div>
         </div>
       </section>
