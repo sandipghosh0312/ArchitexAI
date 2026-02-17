@@ -1,5 +1,5 @@
 import { CheckCircle2, ImageIcon, UploadIcon } from 'lucide-react';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useOutletContext } from 'react-router';
 import {
     PROGRESS_INTERVAL_MS,
@@ -16,7 +16,10 @@ const Upload = ({ onComplete }: UploadProps) => {
     const [isDragging, setIsDragging] = useState(false);
     const [progress, setProgress] = useState(0);
 
-    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const base64Ref = useRef<string | null>(null);
+
 
     const { isSignedIn } = useOutletContext<AuthContext>();
 
@@ -45,28 +48,54 @@ const Upload = ({ onComplete }: UploadProps) => {
         }
 
         reader.onload = () => {
-            const base64 = reader.result as string;
+            base64Ref.current = reader.result as string;
 
             intervalRef.current = setInterval(() => {
                 setProgress((prev) => {
                     const next = prev + PROGRESS_STEP;
-
-                    if (next >= 100) {
-                        if (intervalRef.current) {
-                            clearInterval(intervalRef.current);
-                        }
-
-                        setTimeout(() => {
-                            onComplete(base64);
-                        }, REDIRECT_DELAY_MS);
-
-                        return 100;
-                    }
-
-                    return next;
+                    return next >= 100 ? 100 : next;
                 });
             }, PROGRESS_INTERVAL_MS);
         };
+
+        React.useEffect(() => {
+            return () => {
+                if (intervalRef.current) {
+                    clearInterval(intervalRef.current);
+                    intervalRef.current = null;
+                }
+
+                if (timeoutRef.current) {
+                    clearTimeout(timeoutRef.current);
+                    timeoutRef.current = null;
+                }
+            };
+        }, []);
+
+
+        useEffect(() => {
+            if (progress !== 100) return;
+
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
+
+            if (!base64Ref.current) return;
+
+            timeoutRef.current = setTimeout(() => {
+                if (base64Ref.current) {
+                    onComplete(base64Ref.current);
+                }
+            }, REDIRECT_DELAY_MS);
+
+            return () => {
+                if (timeoutRef.current) {
+                    clearTimeout(timeoutRef.current);
+                    timeoutRef.current = null;
+                }
+            };
+        }, [progress, onComplete]);
 
         reader.readAsDataURL(selectedFile);
     };
